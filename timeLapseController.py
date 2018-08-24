@@ -12,7 +12,7 @@ shot_date = datetime.now().strftime('%Y-%m-%d')
 shot_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 #Need to kill the default gphoto2 process first
-def killgphoto2Process():
+def startup():
     p = subprocess.Popen(['ps', '-A'], stdout = subprocess.PIPE)
     out, err = p.communicate()
 
@@ -20,6 +20,11 @@ def killgphoto2Process():
         if b'gvfsd-gphoto2' in line:
             pid = int(line.split(None, 1)[0])
             os.kill(pid, signal.SIGKILL)
+
+    os.system('gphoto2 --set-config capturetarget=1')
+    
+
+
 
 #Create the UI
 class TimeLapseController(QtWidgets.QDialog):
@@ -194,15 +199,10 @@ class TimeLapseController(QtWidgets.QDialog):
         def createSaveFolder(self):
                 os.makedirs(self.saveLocation)
 
-        def renameFiles(self):
-                for filename in os.listdir('.'):
-                    if len(filename) < 13:
-                        if filename.endswith('.JPG'):
-                            os.rename(filename, (shot_time + self.log + '.JPG'))
-                            print('Renamed the JPG')
-                        elif filename.endswith('.CR2'):
-                            os.rename(filename, (shot_time + self.log + '.CR2'))
-                            print('Renamed the CR2')                             
+        def saveFiles(self):
+                os.chdir(self.saveLocation)
+                os.system('gphoto2 --get-all-files')
+                os.system('gphoto2 --folder /store_00020001/DCIM/100CANON -R --delete-all-files')
 
         def captureImage(self):
                 self.saveLocation = '/home/pi/Desktop/gphoto/images/' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -237,7 +237,6 @@ class TimeLapseController(QtWidgets.QDialog):
                     shutterSpeed = self.shutterSpeedList[round(shutterSpeedIndex)]
                     os.system('gphoto2 --set-config shutterspeed=' + str(shutterSpeed))
                     os.system('gphoto2 --trigger-capture')
-                    self.renameFiles()
                     self.editLog(shotNum, shutterSpeed, iso, aperture, whitebalance)
                     self.loadLog()
                     self.logTableWidget.repaint()
@@ -246,9 +245,11 @@ class TimeLapseController(QtWidgets.QDialog):
                     shutterSpeedIndex = shutterSpeedIndex + shutterIncrement
                     shotNum += 1
 
+                self.saveFiles()
+
                 
                                 
-killgphoto2Process()
+startup()
 app = QtWidgets.QApplication(sys.argv)
 form = TimeLapseController()
 form.show()
