@@ -23,9 +23,6 @@ def startup():
 
     os.system('gphoto2 --set-config capturetarget=1')
     
-
-
-
 #Create the UI
 class TimeLapseController(QtWidgets.QDialog):
         
@@ -35,7 +32,7 @@ class TimeLapseController(QtWidgets.QDialog):
                 self.saveLocation = ''
                 self.log = ''
                 
-                self.nameLabel = QtWidgets.QLabel('Sequence Name')
+                self.nameLabel = QtWidgets.QLabel('Description')
                 self.nameLineEdit = QtWidgets.QLineEdit()
                 self.nameLineEdit.setText('Default')
                 self.totalShotsSpinBox = QtWidgets.QSpinBox()
@@ -50,6 +47,7 @@ class TimeLapseController(QtWidgets.QDialog):
                 self.delaySpinBox.setRange(1, 500)
                 self.delaySpinBox.setValue(5)
                 self.iterationCombo = QtWidgets.QComboBox()
+                self.iterationLabel = QtWidgets.QLabel('Interval')
                 self.iterationList = ['seconds', 'minutes', 'hours']
                 self.iterationCombo.addItems(self.iterationList)
                 self.delay = self.delaySpinBox.value
@@ -78,7 +76,7 @@ class TimeLapseController(QtWidgets.QDialog):
                 self.startingShutterSpeedComboBox = QtWidgets.QComboBox()
                 self.shutterSpeedList = ['1/4000', '1/3200', '1/2500', '1/2000', '1/1600', '1/1250', '1/1000', '1/800',\
                                      '1/640,', '1/500', '1/400', '1/320', '1/250', '1/200', '1/160', '1/125', '1/100', \
-                                     '1/80', '1/60', '1/50', '1/40', '1/30', '1/25', '1/20', '1/50', '1/13', '1/10', \
+                                     '1/80', '1/60', '1/50', '1/40', '1/30', '1/25', '1/20', '1/13', '1/10', \
                                      '1/8', '1/6', '1/5', '1/4', '0.3', '0.4', '0.5', '0.6', '0.8', '1', '1.3', '1.6',\
                                      '2', '2.5', '3.2', '4', '5', '6', '8', '10', '13', '15', '20', '25', '30']
 
@@ -102,11 +100,14 @@ class TimeLapseController(QtWidgets.QDialog):
                 self.shootButton.clicked.connect(self.captureImage)
 
                 self.shotsLayout = QtWidgets.QGridLayout()
-                self.shotsLayout.addWidget(self.totalShotsLabel, 0, 0)
-                self.shotsLayout.addWidget(self.totalShotsSpinBox, 0, 1)
-                self.shotsLayout.addWidget(self.delayLabel, 1, 0)
-                self.shotsLayout.addWidget(self.delaySpinBox, 1, 1)
-                self.shotsLayout.addWidget(self.iterationCombo, 1, 2)
+                self.shotsLayout.addWidget(self.nameLabel, 0, 0)
+                self.shotsLayout.addWidget(self.nameLineEdit, 0, 1)
+                self.shotsLayout.addWidget(self.totalShotsLabel, 1, 0)
+                self.shotsLayout.addWidget(self.totalShotsSpinBox, 1, 1)
+                self.shotsLayout.addWidget(self.delayLabel, 2, 0)
+                self.shotsLayout.addWidget(self.delaySpinBox, 2, 1)
+                self.shotsLayout.addWidget(self.iterationLabel, 3, 0)
+                self.shotsLayout.addWidget(self.iterationCombo, 3, 1)
 
                 self.shutterLayout = QtWidgets.QGridLayout()
                 self.shutterLayout.addWidget(self.startingShutterSpeedLabel, 0, 0)
@@ -132,7 +133,7 @@ class TimeLapseController(QtWidgets.QDialog):
                 self.logLayout = QtWidgets.QVBoxLayout()
                 self.logTableWidget = QtWidgets.QTableWidget()
                 self.logTableWidget.verticalHeader().hide()
-                self.logTableWidget.setMinimumWidth(700)
+                self.logTableWidget.setMinimumWidth(500)
                 self.logLayout.addWidget(self.logTableWidget)
                 self.logTableWidget.setColumnCount(6)
                 self.logTableWidget.setUpdatesEnabled(True)
@@ -142,8 +143,12 @@ class TimeLapseController(QtWidgets.QDialog):
                 self.logTableWidget.setHorizontalHeaderItem(3, QtWidgets.QTableWidgetItem('F-Stop'))
                 self.logTableWidget.setHorizontalHeaderItem(4, QtWidgets.QTableWidgetItem('White Balance'))
                 self.logTableWidget.setHorizontalHeaderItem(5, QtWidgets.QTableWidgetItem('Date/Time'))
+                self.logTableWidget.setColumnWidth(0, 75)
+                self.logTableWidget.setColumnWidth(1, 50)
+                self.logTableWidget.setColumnWidth(2, 50)
+                self.logTableWidget.setColumnWidth(3, 50)
+                self.logTableWidget.setColumnWidth(4, 100)
                 self.logTableWidget.setColumnWidth(5, 200)
-                               
                 self.masterLayout = QtWidgets.QHBoxLayout()
                 self.masterLayout.addLayout(self.cameraMainLayout)
                 self.masterLayout.addLayout(self.logLayout)
@@ -196,8 +201,16 @@ class TimeLapseController(QtWidgets.QDialog):
                     for column_number, data in enumerate(row_data):
                         self.logTableWidget.setItem(row_number, column_number, QtWidgets.QTableWidgetItem(str(data)))
 
+        def takeLog(self):
+                myFile = open('/home/pi/Desktop/gphoto/shotLog.txt', 'a')
+                myFile.write(self.saveLocation + ': ' + self.nameLineEdit.text() + '\n')
+                myFile.close()
+
         def createSaveFolder(self):
-                os.makedirs(self.saveLocation)
+                try:
+                    os.makedirs(self.saveLocation)
+                except:
+                    print('Folder is already created.  Please check that your date/time is current')
 
         def saveFiles(self):
                 os.chdir(self.saveLocation)
@@ -206,6 +219,7 @@ class TimeLapseController(QtWidgets.QDialog):
 
         def captureImage(self):
                 self.saveLocation = '/home/pi/Desktop/gphoto/images/' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                self.takeLog()
                 self.log = self.saveLocation + '/' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 self.createSaveFolder()
                 self.createLog()
@@ -244,6 +258,9 @@ class TimeLapseController(QtWidgets.QDialog):
                     sleep(delay)
                     shutterSpeedIndex = shutterSpeedIndex + shutterIncrement
                     shotNum += 1
+
+
+                    
 
                 self.saveFiles()
 
